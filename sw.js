@@ -1,4 +1,4 @@
-const CACHE = "planner-v1";
+const CACHE = "planner-v2";
 
 const ASSETS = [
   "./",
@@ -15,8 +15,21 @@ const ASSETS = [
 ];
 
 // التثبيت: نخزّن ملفات التطبيق كلها
+// self.addEventListener("install", (e) => {
+//   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)));
+//   self.skipWaiting();
+// });
+
 self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)));
+  e.waitUntil(
+    caches.open(CACHE).then((c) =>
+      Promise.all(
+        ASSETS.map((url) =>
+          c.add(url).catch((err) => console.warn("لم يُخزَّن:", url, err))
+        )
+      )
+    )
+  );
   self.skipWaiting();
 });
 
