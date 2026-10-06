@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#4f46e5">
+  <title>مخطط المهام</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="مهامي">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/theme.js"></script>
+
+</head>
+
+<body class="bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-100">
+  <main class="mx-auto max-w-xl px-4 pb-28 pt-5">
+
+    <!-- شاشة اليوم -->
+    <section id="screen-today" class="screen">
+      <div class="mb-5 rounded-3xl bg-linear-to-br from-indigo-600 to-violet-600 p-5 text-white shadow-lg">
+        <p class="text-sm opacity-80">مهام اليوم</p>
+        <h1 id="today-date" class="mt-1 text-2xl font-bold"></h1>
+        <div class="mt-4 h-2.5 overflow-hidden rounded-full bg-white/25">
+          <div id="progress-bar" class="h-full w-0 rounded-full bg-white transition-[width] duration-500"></div>
+        </div>
+        <p id="progress-text" class="mt-2 text-sm opacity-90"></p>
+      </div>
+      <div id="today-list"></div>
+    </section>
+
+    <!-- شاشة الأهداف -->
+    <section id="screen-goals" class="screen" hidden>
+      <h1 class="mb-4 text-2xl font-bold">الأهداف</h1>
+
+      <form id="goal-form" class="card">
+        <h2 class="mb-3 text-lg font-bold">هدف جديد</h2>
+
+        <label class="lbl">عنوان الهدف
+          <input id="title" class="field" required placeholder="كورس React">
+        </label>
+
+        <label class="lbl">طريقة التقسيم
+          <select id="mode" class="field">
+            <option value="auto">تلقائي (توزيع متساوٍ على الأيام)</option>
+            <option value="manual">يدوي (أضيف المهام بنفسي)</option>
+          </select>
+        </label>
+
+        <div id="auto-fields" class="flex gap-3">
+          <label class="lbl flex-1">الكمية
+            <input id="total" type="number" min="1" class="field" required value="10">
+          </label>
+          <label class="lbl flex-1">الوحدة
+            <input id="unit" class="field" required value="درس">
+          </label>
+        </div>
+
+        <div class="flex gap-3">
+          <label class="lbl flex-1">من تاريخ
+            <input id="start" type="date" class="field" required>
+          </label>
+          <label class="lbl flex-1">إلى تاريخ
+            <input id="end" type="date" class="field" required>
+          </label>
+        </div>
+
+        <label id="skip-wrap" class="mb-3 flex items-center gap-2 text-sm">
+          <input id="skip-friday" type="checkbox" class="size-5 accent-indigo-600"> استبعاد يوم الجمعة
+        </label>
+
+        <p id="error" class="mb-2 min-h-5 text-sm text-red-600 dark:text-red-400"></p>
+        <button type="submit" class="btn-primary">إضافة الهدف</button>
+      </form>
+
+
+      <div id="goals"></div>
+    </section>
+
+    <!-- شاشة الإعدادات -->
+    <section id="screen-settings" class="screen" hidden>
+      <h1 class="mb-4 text-2xl font-bold">الإعدادات</h1>
+
+      <div class="card">
+        <h2 class="mb-3 font-bold">المظهر</h2>
+        <div class="grid grid-cols-3 gap-2">
+          <button type="button" data-theme="light" data-active="false" class="opt">☀️ فاتح</button>
+          <button type="button" data-theme="dark" data-active="false" class="opt">🌙 داكن</button>
+          <button type="button" data-theme="system" data-active="true" class="opt">📱 تلقائي</button>
+        </div>
+      </div>
+
+
+      <div class="card">
+        <h2 class="mb-1 font-bold">التطبيق</h2>
+        <p class="mb-3 text-sm text-slate-500 dark:text-slate-400">
+          ثبّته على الشاشة الرئيسية ليعمل بدون إنترنت. في iPhone: زر المشاركة ثم «إضافة إلى الشاشة الرئيسية».
+        </p>
+        <button id="install-btn" type="button" class="btn-primary" hidden>📲 تثبيت التطبيق</button>
+      </div>
+
+      <div class="card">
+        <h2 class="mb-1 font-bold">البيانات</h2>
+        <p class="mb-3 text-sm text-slate-500 dark:text-slate-400">تُحفظ بياناتك على هذا الجهاز فقط.</p>
+        <button id="clear-data" type="button"
+          class="w-full rounded-xl border border-red-300 p-3 font-semibold text-red-600 dark:border-red-800 dark:text-red-400">
+          حذف كل البيانات
+        </button>
+      </div>
+    </section>
+  </main>
+
+
+  <dialog id="task-dialog"
+    class="m-auto w-[min(92vw,28rem)] rounded-2xl bg-white p-5 text-slate-800 shadow-xl backdrop:bg-black/50 dark:bg-slate-800 dark:text-slate-100">
+    <form id="task-form">
+      <h2 id="task-dialog-title" class="mb-3 text-lg font-bold"></h2>
+
+      <label id="task-title-wrap" class="lbl">عنوان المهمة
+        <input id="task-title" class="field">
+      </label>
+
+      <div class="flex gap-3">
+        <label class="lbl flex-1">التاريخ
+          <input id="task-date" type="date" class="field" required>
+        </label>
+        <label class="lbl flex-1">الكمية
+          <input id="task-amount" type="number" min="1" class="field" required>
+        </label>
+      </div>
+
+      <label class="mb-4 flex items-center gap-2 text-sm">
+        <input id="task-done" type="checkbox" class="size-5 accent-indigo-600"> منجزة
+      </label>
+
+      <div class="flex gap-2">
+        <button type="submit" class="btn-primary">حفظ</button>
+        <button type="button" id="task-cancel"
+          class="w-full rounded-xl border border-slate-300 p-3 dark:border-slate-600">إلغاء</button>
+      </div>
+      <button type="button" id="task-delete"
+        class="mt-3 w-full p-2 text-sm font-semibold text-red-600 dark:text-red-400" hidden>🗑 حذف المهمة</button>
+    </form>
+  </dialog>
+
+  <nav
+    class="fixed inset-x-0 bottom-0 flex border-t border-slate-200 bg-white/90 pb-[env(safe-area-inset-bottom)] backdrop-blur dark:border-slate-700 dark:bg-slate-900/90">
+    <button data-tab="today" data-active="true" class="tab">
+      <span class="text-xl">📅</span><span class="text-xs">اليوم</span>
+    </button>
+    <button data-tab="goals" data-active="false" class="tab">
+      <span class="text-xl">🎯</span><span class="text-xs">الأهداف</span>
+    </button>
+    <button data-tab="settings" data-active="false" class="tab">
+      <span class="text-xl">⚙️</span><span class="text-xs">الإعدادات</span>
+    </button>
+  </nav>
+
+  <script src="js/storage.js"></script>
+  <script src="js/planner.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/pwa.js"></script>
+</body>
+
+</html>
