@@ -29,7 +29,13 @@
         </div>
         <p id="progress-text" class="mt-2 text-sm opacity-90"></p>
       </div>
-      <div id="today-list"></div>
+      <div id="today-list">
+        <form id="quick-form" class="mb-4 flex gap-2">
+          <input id="quick-input" class="field mt-0 min-w-0 flex-1" required placeholder="＋ مهمة سريعة لليوم...">
+          <button type="submit"
+            class="shrink-0 rounded-xl bg-indigo-600 px-5 font-semibold text-white active:scale-[.98]">إضافة</button>
+        </form>
+      </div>
     </section>
 
     <!-- شاشة الأهداف -->
@@ -50,12 +56,17 @@
           </select>
         </label>
 
-        <div id="auto-fields" class="flex gap-3">
-          <label class="lbl flex-1">الكمية
-            <input id="total" type="number" min="1" class="field" required value="10">
-          </label>
-          <label class="lbl flex-1">الوحدة
-            <input id="unit" class="field" required value="درس">
+        <div id="auto-fields">
+          <div class="flex gap-3">
+            <label class="lbl flex-1">الكمية المتبقية
+              <input id="total" type="number" min="1" class="field" required value="10">
+            </label>
+            <label class="lbl flex-1">الوحدة (مفرد)
+              <input id="unit" class="field" required value="درس">
+            </label>
+          </div>
+          <label class="lbl">ابدأ الترقيم من رقم (اختياري)
+            <input id="start-number" type="number" min="1" class="field" placeholder="مثال: 21">
           </label>
         </div>
 

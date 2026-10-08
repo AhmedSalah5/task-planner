@@ -44,25 +44,52 @@ function splitAmount(total, daysCount) {
 
 // توليد المهام اليومية لهدف
 // بناء مهام يومية لكمية معينة على أيام معينة
-function buildTasks(goal, days, total) {
+function buildTasks(goal, days, total, startNumber = null) {
   if (days.length === 0 || total <= 0) return [];
   const amounts = splitAmount(total, days.length);
-  return days
-    .map((date, i) => ({
+  let n = startNumber;
+  const result = [];
+
+  days.forEach((date, i) => {
+    const amount = amounts[i];
+    if (amount <= 0) return;
+    const numbered = n !== null;
+    const from = numbered ? n : null;
+    const to = numbered ? n + amount - 1 : null;
+    if (numbered) n += amount;
+
+    result.push({
       id: uid(),
       goalId: goal.id,
       date,
-      title: `${goal.title} - ${amounts[i]} ${goal.unit}`,
-      amount: amounts[i],
+      title: numbered
+        ? rangeText(goal.unit, from, to)
+        : `${goal.title} - ${amount} ${goal.unit}`,
+      amount,
+      from,
+      to,
       done: false,
       manual: false,
-    }))
-    .filter((t) => t.amount > 0);
+    });
+  });
+  return result;
 }
 
 function generateTasks(goal) {
   const days = getAvailableDays(goal.startDate, goal.endDate, goal.skipDays);
-  return buildTasks(goal, days, goal.total);
+  return buildTasks(goal, days, goal.total, goal.startNumber ?? null);
+}
+
+function planReschedule(goal, tasks, todayISO) {
+  const undone = tasks.filter((t) => t.goalId === goal.id && !t.done && !t.manual);
+  const remaining = undone.reduce((sum, t) => sum + t.amount, 0);
+  const froms = undone.map((t) => t.from).filter((n) => n != null);
+  const startNumber = froms.length ? Math.min(...froms) : null;
+  const days =
+    todayISO <= goal.endDate
+      ? getAvailableDays(todayISO, goal.endDate, goal.skipDays)
+      : [];
+  return { remaining, days, startNumber };
 }
 
 
@@ -107,15 +134,10 @@ function daysLeftText(n) {
   return `متبقي ${n} يوماً`;
 }
 
-// خطة إعادة التوزيع: المتبقي + الأيام المتاحة من اليوم حتى النهاية
-function planReschedule(goal, tasks, todayISO) {
-  const remaining = tasks
-    .filter((t) => t.goalId === goal.id && !t.done && !t.manual)
-    .reduce((sum, t) => sum + t.amount, 0);
 
-  const days =
-    todayISO <= goal.endDate
-      ? getAvailableDays(todayISO, goal.endDate, goal.skipDays)
-      : [];
-  return { remaining, days };
+
+function rangeText(unit, from, to) {
+  if (from === to) return `${unit} ${from}`;
+  if (to === from + 1) return `${unit} ${from} و${to}`;
+  return `${unit} ${from} إلى ${to}`;
 }

@@ -101,6 +101,7 @@ form.addEventListener("submit", (e) => {
     startDate: $("start").value,
     endDate: $("end").value,
     skipDays: !manual && $("skip-friday").checked ? [5] : [],
+    startNumber: !manual && $("start-number").value !== "" ? Number($("start-number").value) : null,
     mode: manual ? "manual" : "auto",
     createdAt: Date.now(),
   };
@@ -131,6 +132,7 @@ function taskLabel(goal, t) {
   if (goal.mode === "manual") {
     return `${goal.title} › ${t.title}${t.amount > 1 ? ` (${t.amount})` : ""}`;
   }
+  if (t.from != null) return `${goal.title}: ${rangeText(goal.unit, t.from, t.to)}`;
   return `${goal.title}: ${t.amount} ${goal.unit}`;
 }
 
@@ -154,14 +156,21 @@ $("task-form").addEventListener("submit", (e) => {
   const amount = Number($("task-amount").value);
   const manualGoal = goal.mode === "manual";
 
+  const from = task && task.from != null ? task.from : null;
+  const to = from !== null ? from + amount - 1 : null;
+
   saveTask({
     id: task ? task.id : uid(),
     goalId: goal.id,
     date: $("task-date").value,
     title: manualGoal
       ? $("task-title").value.trim()
-      : `${goal.title} - ${amount} ${goal.unit}`,
+      : from !== null
+        ? rangeText(goal.unit, from, to)
+        : `${goal.title} - ${amount} ${goal.unit}`,
     amount,
+    from,
+    to,
     done: $("task-done").checked,
     manual: true,
   });
@@ -180,12 +189,34 @@ $("task-delete").addEventListener("click", () => {
   }
 });
 
+$("quick-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const title = $("quick-input").value.trim();
+  if (!title) return;
+
+  saveTask({
+    id: uid(),
+    goalId: null,
+    date: toISO(new Date()),
+    title,
+    amount: 1,
+    from: null,
+    to: null,
+    done: false,
+    manual: true,
+    quick: true,
+  });
+
+  $("quick-input").value = "";
+  render();
+});
+
 // ---------- شاشة اليوم ----------
 function renderToday() {
   const { goals, tasks } = loadData();
   const now = new Date();
   const today = toISO(now);
-  const todayTasks = tasks.filter((t) => t.date === today);
+  const todayTasks = tasks.filter((t) => t.date === today || (t.quick && !t.done && t.date < today));
 
   $("today-date").textContent = formatDate(now);
   todayEl.innerHTML = "";
@@ -233,15 +264,33 @@ function renderToday() {
     });
 
     const span = document.createElement("span");
-    span.className = t.done
-      ? "text-slate-400 line-through dark:text-slate-500"
-      : "font-medium";
-    span.textContent = goal ? taskLabel(goal, t) : t.title;
-    // span.textContent = goal ? `${goal.title}: ${t.amount} ${goal.unit}` : t.title;
+    // span.className = t.done
+    //   ? "text-slate-400 line-through dark:text-slate-500"
+    //   : "font-medium";
 
+
+    span.className = t.done
+      ? "flex-1 text-slate-400 line-through dark:text-slate-500"
+      : "flex-1 font-medium";
+    span.textContent = goal ? taskLabel(goal, t) : t.title;
 
     label.append(cb, span);
+
+    if (t.quick) {
+      const x = document.createElement("button");
+      x.type = "button";
+      x.className = "rounded-lg p-1.5 text-slate-400 hover:text-red-500";
+      x.setAttribute("aria-label", "حذف");
+      x.textContent = "✕";
+      x.addEventListener("click", () => {
+        deleteTask(t.id);
+        render();
+      });
+      label.appendChild(x);
+    }
     todayEl.appendChild(label);
+    span.textContent = goal ? taskLabel(goal, t) : t.title;
+    // span.textContent = goal ? `${goal.title}: ${t.amount} ${goal.unit}` : t.title;
   });
 }
 
@@ -259,7 +308,8 @@ function handleReschedule(goalId) {
   if (!goal) return;
 
   const today = toISO(new Date());
-  const { remaining, days } = planReschedule(goal, tasks, today);
+  // const { remaining, days } = planReschedule(goal, tasks, today);
+  const { remaining, days, startNumber } = planReschedule(goal, tasks, today);
   if (remaining === 0) {
     alert("لا توجد مهام تلقائية قابلة لإعادة التوزيع. عدّل مواعيد المهام يدوياً.");
     return;
@@ -292,7 +342,8 @@ function handleReschedule(goalId) {
   );
   if (!ok) return;
 
-  applyReschedule(goal.id, buildTasks(goal, useDays, remaining), newEnd);
+  // applyReschedule(goal.id, buildTasks(goal, useDays, remaining), newEnd);
+  applyReschedule(goal.id, buildTasks(goal, useDays, remaining, startNumber), newEnd);
   render();
 }
 
@@ -399,10 +450,14 @@ function renderGoals() {
             : "text-slate-700 dark:text-slate-200");
 
         const text = document.createElement("span");
+
         const body =
           goal.mode === "manual"
             ? `${t.title}${t.amount > 1 ? ` (${t.amount})` : ""}`
-            : `${t.amount} ${goal.unit}`;
+            : t.from != null
+              ? rangeText(goal.unit, t.from, t.to)
+              : `${t.amount} ${goal.unit}`;
+
         text.textContent = `${t.done ? "✓" : "•"} ${t.date}: ${body}`;
 
         const edit = document.createElement("span");
